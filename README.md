@@ -44,7 +44,9 @@
   - [I/O](#io)
   - [Files](#files)
   - [Networks](#networks)
+    - [HTTP Server](#http-server)
   - [Encode/Decode](#encodedecode)
+    - [JSON](#json)
 
 <!-- /TOC -->
 
@@ -168,6 +170,8 @@ command_type = `echo foo`  # or %x(echo foo)
 1...5 # do not include 5
 ..5
 1..
+a_range = 1..4
+p a_range.to_a # >> [1, 2, 3, 4]
 ```
 ### More about String
 
@@ -489,7 +493,7 @@ end
 
 Node.js
 ```javascript
-
+let foo = []
 let a = [1, 2, 3]
 
 a.pop()
@@ -519,6 +523,9 @@ a.reduce((acc,c) => acc += c, 0)
 Crystal
 
 ```crystal
+foo = [] of Int32
+foo2 = Array(String).new
+
 a = [1, 2, 3]
 
 a.pop()
@@ -531,9 +538,12 @@ a.insert(3, 4) # the inserted will be the index 3
 
 a[1..]    # portion of array: from 1 in end
 a[1...3]  # portion of array: from 1 to 3, not include 3
-
+a[1, 3]   # from 1, and size 3
 a + [5, 6]  # concat array
 
+a[100]?    # >> nil, to access an element that may not exist
+a.includes(32) # >> false
+a.delete(2) # delete all value 2.
 a.index(3)  # the index of an element
 
 a.each { |i| puts i }
@@ -567,6 +577,8 @@ for(let [k, v] of b_map) {
 Crystal
 
 ```crystal
+foo = {} of String
+foo2 = Hash(String).new
 a_map = Hash(String, String).new
 a_map["foo"] = "foo_value"
 a_map["bar"] = "bar_value"
@@ -575,7 +587,7 @@ b_map = { "foo" => "foo_value", "bar" => "bar_value" }
 c_map = Hash.zip(["foo", "bar"], ["bar_value", "bar_value"])
 
 puts c_map.size
-
+c_map["quo"]?
 c_map.delete("bar")
 c_map.has_key?("bar")
 c_map.has_value?("bar_value")
@@ -748,7 +760,10 @@ end
 # pass the proc as block
 got(12, &log)
 
-# You can also pass the proc to the fucntion to capture it
+# You can also pass the proc to the function to capture it, note you
+# have to use & in function declaration to declare that the function
+# recieves a proc as the argument, and this proc can be returned
+# if you want to call it, you need to use Proc method #call.
 def got2(&block : Int32 -> Void)
   block
 end
@@ -764,7 +779,14 @@ end
 proc = ->inc(Int32)
 p proc.call(1)
 
+# a proc is also an object, so it can be created from new method
+
+proc = Proc(Int32, Int32).new { |n, m| n + m }
+fn.call(1, 2) # => 3
+
 ```
+
+Similar to closure, a proc captures variables.
 
 ---
 
@@ -772,108 +794,108 @@ p proc.call(1)
 
 Node.js
 ```javascript
-  class Creature {
-    constructor (name) {
-      this.name = name
-    }
+class Creature {
+  constructor (name) {
+    this.name = name
+  }
+}
+
+const moveMixin = Base => class extends Base {
+  move () {
+    console.log(`${this.name} moved.`)
+  }
+}
+
+class Player extends moveMixin(Creature) {
+  // #hp  private fields are not currently supported
+  constructor (name) {
+    super(name)
+    this._hp = 999  // convention for private fields
   }
 
-  const moveMixin = Base => class extends Base {
-    move () {
-      console.log(`${this.name} moved.`)
-    }
+  eat (food) {
+    this._hp += food * 10
   }
 
-  class Player extends moveMixin(Creature) {
-    // #hp  private fields are not currently supported
-    constructor (name) {
-      super(name)
-      this._hp = 999  // convention for private fields
-    }
-
-    eat (food) {
-      this._hp += food * 10
-    }
-
-    get info () {
-      return `${this.name}: ${this._hp}`
-    }
-
-    set starvation (velocity) {
-      this._hp -= velocity * 15
-    }
-
-    static register () {
-      console.log('You have been registered.')
-    }
+  get info () {
+    return `${this.name}: ${this._hp}`
   }
 
-  const warrior = new Player('Warrior')
-  Player.register()               // > "You have been registered."
-  console.log(warrior.name)       // > "Warrior"
-  console.log(warrior.info)       // > "Warrior: 999"
-  warrior.starvation = 0.2
-  console.log(warrior.info)       // > "Warrior: 996"
-  warrior.eat(5)                  // > "Warrior: 1046"
-  console.log(warrior.info)
-  warrior.move()                  // > "Warrior moved."
+  set starvation (velocity) {
+    this._hp -= velocity * 15
+  }
+
+  static register () {
+    console.log('You have been registered.')
+  }
+}
+
+const warrior = new Player('Warrior')
+Player.register()               // > "You have been registered."
+console.log(warrior.name)       // > "Warrior"
+console.log(warrior.info)       // > "Warrior: 999"
+warrior.starvation = 0.2
+console.log(warrior.info)       // > "Warrior: 996"
+warrior.eat(5)                  // > "Warrior: 1046"
+console.log(warrior.info)
+warrior.move()                  // > "Warrior moved."
 ```
 
 Crystal
 
 ```crystal
-  class Creature
-  	property name : String # define setter and getter for name
-    def initialize (name : String) # variables that have no initial value need type
-      @name = name # instance variables begin with @, they are private by default
-    end
+class Creature
+  property name : String # define setter and getter for name
+  def initialize (name : String) # variables that have no initial value need type
+    @name = name # instance variables begin with @, they are private by default
+  end
+end
+
+module Movable # modules can be used as mix-ins
+  def move
+    puts "#{@name} moved."
+  end
+end
+
+class Player < Creature
+  include Movable
+  @@status = "Normal" # class variables begin with @@
+  def initialize (name)
+    super  # same as super(name)
+    @hp = 999.0_F32
   end
 
-  module Movable # modules can be used as mix-ins
-    def move
-      puts "#{@name} moved."
-    end
+  def eat (food : Int32)
+    @hp += food * 10
   end
 
-  class Player < Creature
-    include Movable
-    @@status = "Normal" # class variables begin with @@
-    def initialize (name)
-      super  # same as super(name)
-      @hp = 999.0_F32
-    end
-
-    def eat (food : Int32)
-      @hp += food * 10
-    end
-
-    def info
-      "#{@name}: #{@hp}"
-    end
-
-    def starvation (velocity : Float32)
-      @hp -= (velocity * 15.0).round(0)
-    end
-
-    def self.register  # class method begin with self or class name
-      puts "You have been registered."
-    end
-
-  	def self.status
-    	@@status
-    end
+  def info
+    "#{@name}: #{@hp}"
   end
 
-  warrior = Player.new("Warrior")
-  Player.register()               # > "You have been registered."
-  puts warrior.name               # > "Warrior"
-  puts warrior.info               # > "Warrior: 999"
-  warrior.starvation(0.2)
-  puts warrior.info               # > "Warrior: 996"
-  warrior.eat(5)                  # > "Warrior: 1046"
-  puts warrior.info
-  warrior.move()                  # > "Warrior moved."
-  puts Player.status
+  def starvation (velocity : Float32)
+    @hp -= (velocity * 15.0).round(0)
+  end
+
+  def self.register  # class method begin with self or class name
+    puts "You have been registered."
+  end
+
+  def self.status
+    @@status
+  end
+end
+
+warrior = Player.new("Warrior")
+Player.register()               # > "You have been registered."
+puts warrior.name               # > "Warrior"
+puts warrior.info               # > "Warrior: 999"
+warrior.starvation(0.2)
+puts warrior.info               # > "Warrior: 996"
+warrior.eat(5)                  # > "Warrior: 1046"
+puts warrior.info
+warrior.move()                  # > "Warrior moved."
+puts Player.status
 ```
 ---
 
@@ -965,6 +987,7 @@ let bar = require('./bar.js')
 ```
 
 Crystal
+
 Crystal use 'require' to import code in other files, it will look up in the two path.
 - the standard library location comes with the compiler
 - the 'lib' directory relative to the current working directory
@@ -1025,8 +1048,8 @@ ensure
 end
 
 # output
-> #<Exception:oops>
-> "finally"
+# => #<Exception:oops>
+# => "finally"
 
 # short syntax
 
@@ -1049,12 +1072,12 @@ end
 
 # output:
 
-#<Exception:oops>
-42
-#<Exception:oops>
-42
-#<Exception:oops>
-42
+# <Exception:oops>
+# 42
+# <Exception:oops>
+# 42
+# <Exception:oops>
+# 42
 ```
 ---
 
@@ -1084,9 +1107,168 @@ shards list
 ---
 
 ## I/O
+Node.js
+```javascript
+console.log(process.argv) // [EXECPATH, FILE, ...]
+console.log(process.env['MY_ENV']) // MY_ENV=FOOBAR node main.js => FOOBAR
+process.stdout.write('output to stdout\n')
+process.stderr.write('output to stderr\n')
 
+process.stdin.on('readable', () => {
+  let chunk
+  while ((chunk = process.stdin.read()) != null) {
+    process.stdout.write(`data: ${chunk}`)
+  }
+})
+process.stdin.on('end', () => {
+  process.stdout.write('end')
+})
+```
+
+Crystal
+
+```crystal
+puts ENV["MY_ENV"] #  MY_ENV=FOOBAR crystal run hi.cr => FOOBAR
+puts ARGV          # crystal run ./src/hi.cr -- foo bar => ["foo", "bar"]
+puts gets
+STDOUT.puts "output to STDOUT"
+STDERR.puts "output to STDERR"
+```
+----
 ## Files
+Node.js
+```javascript
+let fs = require('fs')
 
+let fooFile = './foo.txt'
+// create
+fs.open(fooFile, 'w+', (err, fd) => {
+  if (err) {
+    console.log(err.message)
+    process.exit()
+  }
+  console.log(`${fooFile} is opened or created.`)
+})
+
+// read
+fs.readFile(fooFile, 'utf8', (err, data) => {
+  if (err) {
+    console.log(err.message)
+    process.exit()
+  }
+  console.log(`${fooFile} is opened: `)
+  console.log(data)
+})
+
+// write
+fs.writeFile(fooFile, 'Fantastic content!!!', err => {
+  if (err) {
+    console.log('Warning: error to write file.')
+  }
+})
+
+// remove
+fs.unlink(fooFile, err => {
+  if (err) {
+    console.log(err.message)
+    process.exit()
+  }
+  console.log('deleted')
+})
+
+```
+
+Crystal
+
+```crystal
+fooFile = "./foo.txt"
+
+# create
+fd = File.new(fooFile, "w")
+fd.close()
+
+# open
+fd = File.open(fooFile)
+pp fd.gets
+fd.close()
+
+# open with block
+File.open(fooFile) do |fd|
+  pp fd.gets
+end
+
+# open and write
+File.open(fooFile, "w") do |fd|
+  fd.puts "Content 123"
+end
+
+# iterate each line
+File.each_line(fooFile) do |line|
+  pp line
+end
+
+# delete file
+File.delete(fooFile) if File.exists?(fooFile)
+
+```
+---
 ## Networks
+### HTTP Server
 
+Node.js
+```javascript
+let http = require('http')
+
+let server = http.createServer((req, resp) => {
+  resp.writeHead(200, { 'Content-type':'text/plain' })
+  resp.write('Hello world!')
+  resp.end()
+})
+
+server.listen(8998)
+
+```
+
+Crystal
+
+```crystal
+require "http/server"
+
+server = HTTP::Server.new do |context|
+  context.response.content_type = "text/plain"
+  context.response.print "Hello world!"
+end
+
+address = server.bind_tcp 8998
+puts "Listening on 8998"
+server.listen
+
+```
+---
 ## Encode/Decode
+
+### JSON
+
+Node.js
+```javascript
+let foo = {
+  foo: 'foo_value'
+}
+
+let jsonStr = JSON.stringify(foo)
+let parsedStr = JSON.parse(jsonStr)
+```
+
+Crystal
+
+```crystal
+require "json"
+
+foo = {
+  "foo_key" => "foo_value"
+}
+
+jsonStr = foo.to_json
+parsedStr = JSON.parse(jsonStr)
+```
+---
