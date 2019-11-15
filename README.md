@@ -772,108 +772,108 @@ p proc.call(1)
 
 Node.js
 ```javascript
-  class Creature {
-    constructor (name) {
-      this.name = name
-    }
+class Creature {
+  constructor (name) {
+    this.name = name
+  }
+}
+
+const moveMixin = Base => class extends Base {
+  move () {
+    console.log(`${this.name} moved.`)
+  }
+}
+
+class Player extends moveMixin(Creature) {
+  // #hp  private fields are not currently supported
+  constructor (name) {
+    super(name)
+    this._hp = 999  // convention for private fields
   }
 
-  const moveMixin = Base => class extends Base {
-    move () {
-      console.log(`${this.name} moved.`)
-    }
+  eat (food) {
+    this._hp += food * 10
   }
 
-  class Player extends moveMixin(Creature) {
-    // #hp  private fields are not currently supported
-    constructor (name) {
-      super(name)
-      this._hp = 999  // convention for private fields
-    }
-
-    eat (food) {
-      this._hp += food * 10
-    }
-
-    get info () {
-      return `${this.name}: ${this._hp}`
-    }
-
-    set starvation (velocity) {
-      this._hp -= velocity * 15
-    }
-
-    static register () {
-      console.log('You have been registered.')
-    }
+  get info () {
+    return `${this.name}: ${this._hp}`
   }
 
-  const warrior = new Player('Warrior')
-  Player.register()               // > "You have been registered."
-  console.log(warrior.name)       // > "Warrior"
-  console.log(warrior.info)       // > "Warrior: 999"
-  warrior.starvation = 0.2
-  console.log(warrior.info)       // > "Warrior: 996"
-  warrior.eat(5)                  // > "Warrior: 1046"
-  console.log(warrior.info)
-  warrior.move()                  // > "Warrior moved."
+  set starvation (velocity) {
+    this._hp -= velocity * 15
+  }
+
+  static register () {
+    console.log('You have been registered.')
+  }
+}
+
+const warrior = new Player('Warrior')
+Player.register()               // > "You have been registered."
+console.log(warrior.name)       // > "Warrior"
+console.log(warrior.info)       // > "Warrior: 999"
+warrior.starvation = 0.2
+console.log(warrior.info)       // > "Warrior: 996"
+warrior.eat(5)                  // > "Warrior: 1046"
+console.log(warrior.info)
+warrior.move()                  // > "Warrior moved."
 ```
 
 Crystal
 
 ```crystal
-  class Creature
-  	property name : String # define setter and getter for name
-    def initialize (name : String) # variables that have no initial value need type
-      @name = name # instance variables begin with @, they are private by default
-    end
+class Creature
+  property name : String # define setter and getter for name
+  def initialize (name : String) # variables that have no initial value need type
+    @name = name # instance variables begin with @, they are private by default
+  end
+end
+
+module Movable # modules can be used as mix-ins
+  def move
+    puts "#{@name} moved."
+  end
+end
+
+class Player < Creature
+  include Movable
+  @@status = "Normal" # class variables begin with @@
+  def initialize (name)
+    super  # same as super(name)
+    @hp = 999.0_F32
   end
 
-  module Movable # modules can be used as mix-ins
-    def move
-      puts "#{@name} moved."
-    end
+  def eat (food : Int32)
+    @hp += food * 10
   end
 
-  class Player < Creature
-    include Movable
-    @@status = "Normal" # class variables begin with @@
-    def initialize (name)
-      super  # same as super(name)
-      @hp = 999.0_F32
-    end
-
-    def eat (food : Int32)
-      @hp += food * 10
-    end
-
-    def info
-      "#{@name}: #{@hp}"
-    end
-
-    def starvation (velocity : Float32)
-      @hp -= (velocity * 15.0).round(0)
-    end
-
-    def self.register  # class method begin with self or class name
-      puts "You have been registered."
-    end
-
-  	def self.status
-    	@@status
-    end
+  def info
+    "#{@name}: #{@hp}"
   end
 
-  warrior = Player.new("Warrior")
-  Player.register()               # > "You have been registered."
-  puts warrior.name               # > "Warrior"
-  puts warrior.info               # > "Warrior: 999"
-  warrior.starvation(0.2)
-  puts warrior.info               # > "Warrior: 996"
-  warrior.eat(5)                  # > "Warrior: 1046"
-  puts warrior.info
-  warrior.move()                  # > "Warrior moved."
-  puts Player.status
+  def starvation (velocity : Float32)
+    @hp -= (velocity * 15.0).round(0)
+  end
+
+  def self.register  # class method begin with self or class name
+    puts "You have been registered."
+  end
+
+  def self.status
+    @@status
+  end
+end
+
+warrior = Player.new("Warrior")
+Player.register()               # > "You have been registered."
+puts warrior.name               # > "Warrior"
+puts warrior.info               # > "Warrior: 999"
+warrior.starvation(0.2)
+puts warrior.info               # > "Warrior: 996"
+warrior.eat(5)                  # > "Warrior: 1046"
+puts warrior.info
+warrior.move()                  # > "Warrior moved."
+puts Player.status
 ```
 ---
 
@@ -965,6 +965,7 @@ let bar = require('./bar.js')
 ```
 
 Crystal
+
 Crystal use 'require' to import code in other files, it will look up in the two path.
 - the standard library location comes with the compiler
 - the 'lib' directory relative to the current working directory
